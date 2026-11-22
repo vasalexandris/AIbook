@@ -1,0 +1,133 @@
+export interface GenreDefinition {
+  id: string;
+  nameEl: string;
+  nameEn: string;
+  descEl: string;
+  descEn: string;
+  defaultToneEl: string;
+  defaultToneEn: string;
+  isNonFiction: boolean;
+}
+
+export const BOOK_GENRES: GenreDefinition[] = [
+  {
+    id: 'scifi',
+    nameEl: 'Επιστημονική Φαντασία',
+    nameEn: 'Science Fiction',
+    descEl: 'Μελλοντικοί κόσμοι, τεχνολογία, διάστημα, φιλοσοφικά διλήμματα.',
+    descEn: 'Future worlds, technology, space, speculative & philosophical dilemmas.',
+    defaultToneEl: 'Ατμοσφαιρικό, ευρηματικό, με εσωτερική επιστημονική συνέπεια',
+    defaultToneEn: 'Atmospheric, inventive, with strong internal world-building logic',
+    isNonFiction: false,
+  },
+  {
+    id: 'novel',
+    nameEl: 'Σύγχρονο Μυθιστόρημα',
+    nameEn: 'Contemporary Novel',
+    descEl: 'Ανθρώπινες ιστορίες, χαρακτήρες, σχέσεις και κοινωνικά θέματα.',
+    descEn: 'Character-driven stories, relationships, and contemporary life.',
+    defaultToneEl: 'Βιωματικό, ρεαλιστικό, με βάθος χαρακτήρων',
+    defaultToneEn: 'Grounded, realistic, with rich character psychology',
+    isNonFiction: false,
+  },
+  {
+    id: 'literary',
+    nameEl: 'Λογοτεχνία / Διήγημα',
+    nameEn: 'Literary Fiction',
+    descEl: 'Έμφαση στη γλώσσα, το ύφος, τις εικόνες και τη στοχαστικότητα.',
+    descEn: 'Focus on prose craft, voice, imagery, and thematic depth.',
+    defaultToneEl: 'Λυρικό, εκλεπτυσμένο, με προσεγμένο ρυθμό',
+    defaultToneEn: 'Lyrical, refined, with deliberate rhythm and imagery',
+    isNonFiction: false,
+  },
+  {
+    id: 'mystery',
+    nameEl: 'Μυστήριο / Θρίλερ',
+    nameEn: 'Mystery & Thriller',
+    descEl: 'Ανατροπές, αγωνία, έρευνα, μυστικά και ρυθμός.',
+    descEn: 'Twists, suspense, investigation, secrets, and tight pacing.',
+    defaultToneEl: 'Κοφτό, αγωνιώδες, με έξυπνα στοιχεία προοικονομίας',
+    defaultToneEn: 'Taut, suspenseful, with carefully planted clues and pacing',
+    isNonFiction: false,
+  },
+  {
+    id: 'fantasy',
+    nameEl: 'Φαντασία (Fantasy)',
+    nameEn: 'Fantasy',
+    descEl: 'Μυθικοί κόσμοι, μαγεία, έπη και αρχέτυπα ταξίδια.',
+    descEn: 'Mythic worlds, magic systems, quests, and rich lore.',
+    defaultToneEl: 'Επικό, ζωντανό, με συνεπή μυθολογία',
+    defaultToneEn: 'Epic, vivid, with consistent mythology and lore',
+    isNonFiction: false,
+  },
+  {
+    id: 'historical',
+    nameEl: 'Ιστορικό Μυθιστόρημα',
+    nameEn: 'Historical Fiction',
+    descEl: 'Ιστορικές εποχές, πραγματικά γεγονότα και μυθοπλασία.',
+    descEn: 'Historical eras blending authentic period detail with narrative.',
+    defaultToneEl: 'Τεκμηριωμένο, αυθεντικό, ατμοσφαιρικό',
+    defaultToneEn: 'Authentic, richly researched, immersive period voice',
+    isNonFiction: false,
+  },
+  {
+    id: 'scientific',
+    nameEl: 'Επιστημονική Έρευνα / Μελέτη',
+    nameEn: 'Scientific Research / Study',
+    descEl: 'Ακαδημαϊκή δομή, βιβλιογραφία, δεδομένα, πίνακες και μεθοδολογία.',
+    descEn: 'Academic structure, literature review, methodology, tables, citations.',
+    defaultToneEl: 'Αυστηρό, ακριβές, τεκμηριωμένο με βιβλιογραφικές αναφορές',
+    defaultToneEn: 'Rigorous, precise, evidence-based with structured citations',
+    isNonFiction: true,
+  },
+  {
+    id: 'nonfiction',
+    nameEl: 'Δοκίμιο / Μη Μυθοπλασία',
+    nameEn: 'Non-Fiction & Essay',
+    descEl: 'Ιδέες, ανάλυση, εκλαϊκευμένη επιστήμη, ιστορία ή φιλοσοφία.',
+    descEn: 'Ideas, analysis, popular science, history, or philosophy.',
+    defaultToneEl: 'Διαυγές, πειστικό, προσιτό με δυνατά παραδείγματα',
+    defaultToneEn: 'Clear, persuasive, accessible with compelling examples',
+    isNonFiction: true,
+  },
+  {
+    id: 'guide',
+    nameEl: 'Εγχειρίδιο / Εκπαιδευτικό / Tech',
+    nameEn: 'Practical Guide / Textbook',
+    descEl: 'Διδακτική δομή, βήματα, παραδείγματα, πίνακες και ασκήσεις.',
+    descEn: 'Instructional structure, step-by-step examples, tables, exercises.',
+    defaultToneEl: 'Πρακτικό, δομημένο, διδακτικό και ξεκάθαρο',
+    defaultToneEn: 'Practical, structured, instructional, and crystal clear',
+    isNonFiction: true,
+  },
+  {
+    id: 'biography',
+    nameEl: 'Βιογραφία / Απομνημονεύματα',
+    nameEn: 'Biography & Memoir',
+    descEl: 'Αληθινές ζωές, προσωπικές διαδρομές και ιστορική μνήμη.',
+    descEn: 'True life stories, personal journeys, and lived reflection.',
+    defaultToneEl: 'Ειλικρινές, ζεστό, αφηγηματικό',
+    defaultToneEn: 'Candid, warm, reflective narrative voice',
+    isNonFiction: true,
+  },
+  {
+    id: 'children',
+    nameEl: 'Παιδικό / Νεανικό (YA)',
+    nameEn: 'Children & Young Adult',
+    descEl: 'Φαντασία, περιπέτεια, εικονογράφηση και ζωντανή γλώσσα.',
+    descEn: 'Imagination, adventure, illustrations, and engaging voice.',
+    defaultToneEl: 'Ζωντανό, παραστατικό, γεμάτο ρυθμό και ζεστασιά',
+    defaultToneEn: 'Lively, visual, rhythmic, and emotionally resonant',
+    isNonFiction: false,
+  },
+  {
+    id: 'custom',
+    nameEl: 'Υβριδικό / Άλλο Είδος',
+    nameEn: 'Hybrid / Custom Genre',
+    descEl: 'Κάτι μοναδικό που θα διαμορφώσεις ελεύθερα μαζί με την ΑΙ.',
+    descEn: 'Something unique that you shape freely with AI.',
+    defaultToneEl: 'Προσαρμοσμένο στο προσωπικό όραμα του συγγραφέα',
+    defaultToneEn: 'Tailored to the author’s unique vision',
+    isNonFiction: false,
+  },
+];
