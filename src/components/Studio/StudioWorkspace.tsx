@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import {
   analyzeRippleEffect,
@@ -20,6 +20,8 @@ import { ChapterBibleSidebar } from './ChapterBibleSidebar';
 import { ChapterEditor } from './ChapterEditor';
 import { RippleEffectModal } from './RippleEffectModal';
 
+const SPLIT_STORAGE_KEY = 'aibook_studio_split_pct';
+
 interface StudioWorkspaceProps {
   lang: UILanguage;
   book: Book;
@@ -40,9 +42,43 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = ({
   );
   const [mobilePane, setMobilePane] = useState<'chapters' | 'editor' | 'ai'>('editor');
 
-  // Left sidebar is collapsed by default on desktop so Editor (40%) + AI Council (60%) get full width!
+  // Left sidebar is collapsed by default; Editor & AI Council start at 50% / 50% and are resizable!
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedExcerpt, setSelectedExcerpt] = useState('');
+
+  const [editorPct, setEditorPct] = useState<number>(() => {
+    const saved = Number(localStorage.getItem(SPLIT_STORAGE_KEY));
+    if (!Number.isNaN(saved) && saved >= 25 && saved <= 75) return saved;
+    return 50;
+  });
+  const [isDragging, setIsDragging] = useState(false);
+  const splitContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMove = (e: PointerEvent) => {
+      const el = splitContainerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      const rawPct = ((e.clientX - rect.left) / rect.width) * 100;
+      const clamped = Math.min(75, Math.max(25, Math.round(rawPct * 10) / 10));
+      setEditorPct(clamped);
+      localStorage.setItem(SPLIT_STORAGE_KEY, String(clamped));
+    };
+    const handleUp = () => setIsDragging(false);
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('pointermove', handleMove);
+    window.addEventListener('pointerup', handleUp);
+    return () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('pointermove', handleMove);
+      window.removeEventListener('pointerup', handleUp);
+    };
+  }, [isDragging]);
 
   const [completing, setCompleting] = useState(false);
   const [checkingRipple, setCheckingRipple] = useState(false);
@@ -412,8 +448,17 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = ({
         </div>
       )}
 
-      {/* Main Studio Layout: 40% Editor (Left) / 60% AI Council & Chat (Right) on desktop */}
-      <div className="relative flex flex-1 overflow-hidden">
+      {/* Main Studio Layout: Resizable 50% / 50% Editor & AI Council split on desktop */}
+      <div
+        ref={splitContainerRef}
+        className="relative flex flex-1 overflow-hidden"
+        style={
+          {
+            '--editor-pct': `${editorPct}%`,
+            '--ai-pct': `${100 - editorPct}%`,
+          } as React.CSSProperties
+        }
+      >
         {/* Mobile Chapters Pane */}
         <div className={`${mobilePane === 'chapters' ? 'block w-full' : 'hidden'} lg:hidden h-full overflow-hidden`}>
           <ChapterBibleSidebar
@@ -467,11 +512,11 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = ({
           </div>
         )}
 
-        {/* Editor Column: 40% width on desktop */}
+        {/* Editor Column */}
         <div
           className={`${
             mobilePane === 'editor' ? 'block w-full' : 'hidden'
-          } lg:block lg:w-[40%] h-full overflow-hidden min-w-0`}
+          } lg:block lg:w-[var(--editor-pct)] h-full overflow-hidden min-w-0`}
         >
           <ChapterEditor
             lang={lang}
@@ -494,11 +539,43 @@ export const StudioWorkspace: React.FC<StudioWorkspaceProps> = ({
           />
         </div>
 
-        {/* AI Council & Chat Column: 60% width on desktop */}
+        {/* Draggable Vertical Divider (Desktop) */}
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={
+            lang === 'el'
+              ? 'Σύρε για αλλαγή μεγέθους στηλών (διπλό κλικ για 50/50)'
+              : 'Drag to resize panes (double-click to reset 50/50)'
+          }
+          title={
+            lang === 'el'
+              ? 'Σύρε για αλλαγή πλάτους • Διπλό κλικ για επαναφορά 50/50'
+              : 'Drag to resize • Double-click to reset 50/50'
+          }
+          onPointerDown={() => setIsDragging(true)}
+          onDoubleClick={() => {
+            setEditorPct(50);
+            localStorage.setItem(SPLIT_STORAGE_KEY, '50');
+          }}
+          className="hidden lg:flex w-2 shrink-0 cursor-col-resize items-center justify-center group transition-colors select-none"
+          style={{
+            backgroundColor: isDragging ? 'var(--accent-soft)' : 'var(--bg-subtle)',
+          }}
+        >
+          <div
+            className="h-12 w-1 rounded-full transition-colors"
+            style={{
+              backgroundColor: isDragging ? 'var(--accent)' : 'var(--border-strong)',
+            }}
+          />
+        </div>
+
+        {/* AI Council & Chat Column */}
         <div
           className={`${
             mobilePane === 'ai' ? 'block w-full' : 'hidden'
-          } lg:block lg:w-[60%] h-full overflow-hidden min-w-0`}
+          } lg:block lg:w-[var(--ai-pct)] h-full overflow-hidden min-w-0`}
         >
           <AICouncilPanel
             lang={lang}
