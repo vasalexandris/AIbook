@@ -242,13 +242,23 @@ export async function testGeminiConnection(config: AIProviderConfig): Promise<st
 
 export async function onboardingBrainstorm(
   config: AIProviderConfig,
-  idea: string,
+  messages: { role: 'user' | 'assistant'; content: string }[],
   selectedGenreLabel: string,
   language: string
 ): Promise<string> {
-  const sys = `You are a warm, insightful Literary Development Editor helping an author conceptualize a new book. Respond in ${language}. Ask 2-3 sharp guiding questions, suggest the best genre fit/angle, and highlight what makes this idea compelling. Keep it concise and encouraging.`;
-  const prompt = `Genre currently selected: ${selectedGenreLabel || 'Not decided yet'}\nAuthor's idea/message:\n${idea}`;
-  return callGeminiRaw(config, sys, [{ role: 'user', parts: [{ text: prompt }] }], false);
+  const sys = `You are a warm, insightful Literary Development Editor helping an author conceptualize a new book in a collaborative back-and-forth conversation.
+Current genre selected by the user: ${selectedGenreLabel || 'Not decided yet'}.
+Respond in ${language}.
+- On the first turn, react warmly to the idea, advise on the best genre fit (even suggesting a better-fitting genre if appropriate), and ask 2-3 sharp guiding questions.
+- On follow-up turns, build directly on the author's answers, help crystallize the book's exact genre, voice, structure, and core angle, and let them know when the concept feels solid enough to click "Next" (Επόμενο) to configure style & outline.
+Keep responses well-structured, concise, and encouraging.`;
+
+  const contents: GeminiContent[] = messages.map((m) => ({
+    role: m.role === 'user' ? 'user' : 'model',
+    parts: [{ text: m.content }],
+  }));
+
+  return callGeminiRaw(config, sys, contents, false);
 }
 
 export interface GeneratedBlueprint {

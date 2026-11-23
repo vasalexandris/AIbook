@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -7,6 +7,7 @@ import {
   Loader2,
   MessageSquare,
   Plus,
+  Send,
   Sparkles,
   Trash2,
 } from 'lucide-react';
@@ -14,7 +15,7 @@ import { BOOK_GENRES } from '../../data/genres';
 import { t } from '../../i18n/translations';
 import { generateBookBlueprint, onboardingBrainstorm } from '../../services/ai';
 import { AIProviderConfig, BibleEntity, Book, BookFontFamily, UILanguage } from '../../types/book';
-import { BOOK_FONT_OPTIONS, getFontClass, uid } from '../../utils/bookUtils';
+import { BOOK_FONT_OPTIONS, getFontClass, renderMarkdownHtml, uid } from '../../utils/bookUtils';
 
 interface NewBookWizardProps {
   lang: UILanguage;
@@ -30,6 +31,12 @@ interface DraftChapterOutline {
   outline: string;
 }
 
+interface BrainstormTurn {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export const NewBookWizard: React.FC<NewBookWizardProps> = ({
   lang,
   aiConfig,
@@ -42,8 +49,10 @@ export const NewBookWizard: React.FC<NewBookWizardProps> = ({
   // Step 1
   const [genreId, setGenreId] = useState('novel');
   const [idea, setIdea] = useState('');
-  const [brainstormReply, setBrainstormReply] = useState('');
+  const [brainstormMessages, setBrainstormMessages] = useState<BrainstormTurn[]>([]);
+  const [followUpInput, setFollowUpInput] = useState('');
   const [brainstorming, setBrainstorming] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Step 2
   const [title, setTitle] = useState('');
@@ -104,23 +113,51 @@ export const NewBookWizard: React.FC<NewBookWizardProps> = ({
     }
   };
 
-  const handleBrainstorm = async () => {
+  const runBrainstormTurn = async (userText: string, isInitial: boolean) => {
     if (!aiConfig.apiKey) {
       onOpenSettings();
       return;
     }
-    if (!idea.trim()) return;
+    const trimmed = userText.trim();
+    if (!trimmed) return;
+
     setError(null);
     setBrainstorming(true);
+
+    const userTurn: BrainstormTurn = {
+      id: uid('bt'),
+      role: 'user',
+      content: trimmed,
+    };
+
+    const nextHistory = isInitial ? [userTurn] : [...brainstormMessages, userTurn];
+    setBrainstormMessages(nextHistory);
+    if (!isInitial) setFollowUpInput('');
+
+    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+
     try {
-      const reply = await onboardingBrainstorm(aiConfig, idea, selectedGenreLabel, bookLanguage);
-      setBrainstormReply(reply);
+      const reply = await onboardingBrainstorm(
+        aiConfig,
+        nextHistory.map((m) => ({ role: m.role, content: m.content })),
+        selectedGenreLabel,
+        bookLanguage
+      );
+      setBrainstormMessages((prev) => [
+        ...prev,
+        { id: uid('bt'), role: 'assistant', content: reply },
+      ]);
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error brainstorming with AI');
     } finally {
       setBrainstorming(false);
     }
   };
+
+  const handleBrainstorm = () => runBrainstormTurn(idea, true);
+
+  const handleFollowUpSend = () => runBrainstormTurn(followUpInput, false);
 
   const handleGenerateBlueprint = async () => {
     if (!aiConfig.apiKey) {
@@ -137,8 +174,17 @@ export const NewBookWizard: React.FC<NewBookWizardProps> = ({
         includeBibliography ? 'Bibliography & Citations' : '',
       ].filter(Boolean);
 
+      const conversationTranscript =
+        brainstormMessages.length > 0
+          ? brainstormMessages
+              .map((m) => `${m.role === 'user' ? 'Author' : 'Editor'}: ${m.content}`)
+              .join('\n\n')
+          : '';
+
       const bp = await generateBookBlueprint(aiConfig, {
-        idea: `${idea}${brainstormReply ? `\n\nBrainstorm notes:\n${brainstormReply}` : ''}` || selectedGenreLabel,
+        idea:
+          `${idea}${conversationTranscript ? `\n\nDiscovery conversation:\n${conversationTranscript}` : ''}` ||
+          selectedGenreLabel,
         genreLabel: selectedGenreLabel,
         language: bookLanguage,
         tone,
@@ -356,29 +402,149 @@ export const NewBookWizard: React.FC<NewBookWizardProps> = ({
                     color: 'var(--accent)',
                   }}
                 >
-                  {brainstorming ? (
+                  {brainstorming && brainstormMessages.length <= 1 ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
                     <MessageSquare className="h-3.5 w-3.5" />
                   )}
-                  <span>{brainstorming ? t(lang, 'brainstorming') : t(lang, 'brainstormWithAI')}</span>
+                  <span>
+                    {brainstorming && brainstormMessages.length <= 1
+                      ? t(lang, 'brainstorming')
+                      : brainstormMessages.length > 0
+                      ? lang === 'el'
+                        ? 'Επανεκκίνηση Συζήτησης'
+                        : 'Restart Discussion'
+                      : t(lang, 'brainstormWithAI')}
+                  </span>
                 </button>
               </div>
 
-              {brainstormReply && (
+              {brainstormMessages.length > 0 && (
                 <div
-                  className="mt-4 rounded-xl border p-4 text-sm leading-relaxed whitespace-pre-wrap"
+                  className="mt-4 rounded-2xl border overflow-hidden"
                   style={{
                     backgroundColor: 'var(--bg-subtle)',
-                    borderColor: 'var(--border-subtle)',
-                    color: 'var(--text-primary)',
+                    borderColor: 'var(--border-strong)',
                   }}
                 >
-                  <div className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold" style={{ color: 'var(--accent)' }}>
-                    <Sparkles className="h-3.5 w-3.5" />
-                    AI Literary Editor
+                  {/* Chat Header */}
+                  <div
+                    className="flex items-center justify-between border-b px-4 py-2.5"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                    }}
+                  >
+                    <div
+                      className="flex items-center gap-1.5 text-xs font-semibold"
+                      style={{ color: 'var(--accent)' }}
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      <span>
+                        {lang === 'el'
+                          ? 'Διαδραστική Συζήτηση με τον AI Literary Editor'
+                          : 'Interactive Discovery with AI Literary Editor'}
+                      </span>
+                    </div>
+                    <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                      {lang === 'el'
+                        ? 'Όλη η συζήτηση μεταφέρεται αυτόματα στο Βήμα 3'
+                        : 'Full conversation carries over to Step 3'}
+                    </span>
                   </div>
-                  {brainstormReply}
+
+                  {/* Messages Thread */}
+                  <div className="max-h-[420px] overflow-y-auto p-4 space-y-3">
+                    {brainstormMessages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`rounded-xl p-3.5 text-sm ${
+                          msg.role === 'user' ? 'ml-8 border' : 'mr-4 border'
+                        }`}
+                        style={{
+                          backgroundColor:
+                            msg.role === 'user' ? 'var(--accent-soft)' : 'var(--bg-surface)',
+                          borderColor:
+                            msg.role === 'user' ? 'var(--border-strong)' : 'var(--border-subtle)',
+                          color: 'var(--text-primary)',
+                        }}
+                      >
+                        <div
+                          className="mb-1 text-[10px] font-semibold uppercase tracking-wide"
+                          style={{
+                            color: msg.role === 'user' ? 'var(--accent)' : 'var(--sage)',
+                          }}
+                        >
+                          {msg.role === 'user'
+                            ? lang === 'el'
+                              ? 'Εσύ'
+                              : 'You'
+                            : 'AI Literary Editor'}
+                        </div>
+                        <div
+                          className="book-prose text-sm"
+                          dangerouslySetInnerHTML={{ __html: renderMarkdownHtml(msg.content) }}
+                        />
+                      </div>
+                    ))}
+
+                    {brainstorming && (
+                      <div
+                        className="flex items-center gap-2 px-2 py-1 text-xs"
+                        style={{ color: 'var(--text-muted)' }}
+                      >
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <span>{t(lang, 'brainstorming')}</span>
+                      </div>
+                    )}
+                    <div ref={chatEndRef} />
+                  </div>
+
+                  {/* Follow-up Reply Input */}
+                  <div
+                    className="border-t p-3"
+                    style={{
+                      backgroundColor: 'var(--bg-surface)',
+                      borderColor: 'var(--border-subtle)',
+                    }}
+                  >
+                    <div className="flex items-end gap-2">
+                      <textarea
+                        id="input-brainstorm-reply"
+                        rows={2}
+                        value={followUpInput}
+                        onChange={(e) => setFollowUpInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleFollowUpSend();
+                          }
+                        }}
+                        placeholder={
+                          lang === 'el'
+                            ? 'Απάντησε στις ερωτήσεις της ΑΙ ή πρόσθεσε νέες σκέψεις (Enter για αποστολή)...'
+                            : 'Answer the AI’s questions or explore further (Press Enter to send)...'
+                        }
+                        className="flex-1 resize-none rounded-xl border px-3 py-2 text-sm outline-none"
+                        style={{
+                          backgroundColor: 'var(--bg-canvas)',
+                          borderColor: 'var(--border-strong)',
+                          color: 'var(--text-primary)',
+                        }}
+                      />
+                      <button
+                        id="btn-send-brainstorm-reply"
+                        type="button"
+                        onClick={handleFollowUpSend}
+                        disabled={brainstorming || !followUpInput.trim()}
+                        className="inline-flex h-10 items-center gap-1.5 rounded-xl px-4 text-xs font-semibold text-white transition-opacity disabled:opacity-50 cursor-pointer"
+                        style={{ backgroundColor: 'var(--accent)' }}
+                      >
+                        <Send className="h-3.5 w-3.5" />
+                        <span>{lang === 'el' ? 'Αποστολή' : 'Send'}</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
