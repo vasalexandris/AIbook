@@ -105,10 +105,14 @@ export function loadAIConfig(): AIProviderConfig {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<AIProviderConfig>;
+      let model = parsed.model || 'gemini-3.8-flash';
+      if (model === 'gemini-2.5-flash' || model === 'gemini-2.0-flash') {
+        model = 'gemini-3.8-flash';
+      }
       return {
         provider: 'gemini',
         apiKey: parsed.apiKey || '',
-        model: parsed.model || 'gemini-2.5-flash',
+        model,
       };
     }
   } catch {
@@ -117,7 +121,7 @@ export function loadAIConfig(): AIProviderConfig {
   return {
     provider: 'gemini',
     apiKey: '',
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.8-flash',
   };
 }
 

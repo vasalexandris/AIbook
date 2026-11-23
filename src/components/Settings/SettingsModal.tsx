@@ -1,7 +1,19 @@
 import React, { useState } from 'react';
-import { CheckCircle2, ExternalLink, KeyRound, ShieldCheck, X, AlertCircle } from 'lucide-react';
+import {
+  CheckCircle2,
+  ExternalLink,
+  KeyRound,
+  RefreshCw,
+  ShieldCheck,
+  X,
+  AlertCircle,
+} from 'lucide-react';
 import { t } from '../../i18n/translations';
-import { GEMINI_MODELS, testGeminiConnection } from '../../services/ai';
+import {
+  GEMINI_MODELS,
+  listAvailableGeminiModels,
+  testGeminiConnection,
+} from '../../services/ai';
 import { AIProviderConfig, UILanguage } from '../../types/book';
 
 interface SettingsModalProps {
@@ -19,8 +31,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const [apiKey, setApiKey] = useState(config.apiKey);
   const [model, setModel] = useState(config.model);
+  const [modelsList, setModelsList] = useState(GEMINI_MODELS);
+  const [loadingModels, setLoadingModels] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+
+  const handleLoadModels = async () => {
+    if (!apiKey.trim()) return;
+    setLoadingModels(true);
+    setTestResult(null);
+    try {
+      const live = await listAvailableGeminiModels(apiKey.trim());
+      if (live.length > 0) {
+        setModelsList(live);
+        if (!live.some((m) => m.id === model)) {
+          const preferred =
+            live.find((m) => m.id.includes('flash')) || live[0];
+          setModel(preferred.id);
+        }
+        setTestResult({
+          ok: true,
+          msg:
+            lang === 'el'
+              ? `Βρέθηκαν ${live.length} διαθέσιμα μοντέλα Gemini για το κλειδί σου.`
+              : `Loaded ${live.length} available Gemini models for your API key.`,
+        });
+      }
+    } catch (err) {
+      setTestResult({
+        ok: false,
+        msg: `${t(lang, 'connectionFailed')} ${err instanceof Error ? err.message : 'Error'}`,
+      });
+    } finally {
+      setLoadingModels(false);
+    }
+  };
 
   const handleTest = async () => {
     setTesting(true);
@@ -99,9 +144,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-              {t(lang, 'modelLabel')}
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-secondary)' }}>
+                {t(lang, 'modelLabel')}
+              </label>
+              <button
+                type="button"
+                onClick={handleLoadModels}
+                disabled={loadingModels || !apiKey.trim()}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold cursor-pointer disabled:opacity-50"
+                style={{ color: 'var(--accent)' }}
+              >
+                <RefreshCw className={`h-3 w-3 ${loadingModels ? 'animate-spin' : ''}`} />
+                <span>
+                  {lang === 'el' ? 'Φόρτωση διαθέσιμων μοντέλων' : 'Fetch available models'}
+                </span>
+              </button>
+            </div>
             <select
               id="select-gemini-model"
               value={model}
@@ -113,7 +172,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 color: 'var(--text-primary)',
               }}
             >
-              {GEMINI_MODELS.map((m) => (
+              {!modelsList.some((m) => m.id === model) && (
+                <option value={model}>{model}</option>
+              )}
+              {modelsList.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.label}
                 </option>

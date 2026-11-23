@@ -12,11 +12,52 @@ import {
   RippleAnalysisResult,
 } from '../types/book';
 
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash';
+
 export const GEMINI_MODELS = [
-  { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Fast & Free-tier friendly)' },
-  { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro (Deep reasoning & literary nuance)' },
-  { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (Legacy fast)' },
+  { id: 'gemini-3.8-flash', label: 'Gemini 3.8 Flash (Recommended — Fast & Latest)' },
+  { id: 'gemini-3.8-pro', label: 'Gemini 3.8 Pro (Deep reasoning & literary nuance)' },
+  { id: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
 ];
+
+export async function listAvailableGeminiModels(
+  apiKey: string
+): Promise<{ id: string; label: string }[]> {
+  if (!apiKey.trim()) {
+    throw new Error('Missing Gemini API Key.');
+  }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(
+    apiKey.trim()
+  )}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    let detail = `HTTP ${res.status}`;
+    try {
+      const err = await res.json();
+      detail = err?.error?.message || detail;
+    } catch {
+      // ignore
+    }
+    throw new Error(`Gemini API Error: ${detail}`);
+  }
+  const data = await res.json();
+  const models = Array.isArray(data.models) ? data.models : [];
+  return models
+    .filter(
+      (m: { name?: string; supportedGenerationMethods?: string[] }) =>
+        m.name &&
+        Array.isArray(m.supportedGenerationMethods) &&
+        m.supportedGenerationMethods.includes('generateContent') &&
+        m.name.includes('gemini')
+    )
+    .map((m: { name: string; displayName?: string }) => {
+      const id = m.name.replace(/^models\//, '');
+      return {
+        id,
+        label: m.displayName ? `${m.displayName} (${id})` : id,
+      };
+    });
+}
 
 interface GeminiContent {
   role: 'user' | 'model';
