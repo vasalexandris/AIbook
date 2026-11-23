@@ -12,6 +12,8 @@ import {
   Italic,
   ListChecks,
   Loader2,
+  Mic,
+  MicOff,
   PanelLeft,
   Quote,
   RotateCcw,
@@ -22,6 +24,7 @@ import {
   Type,
   X,
 } from 'lucide-react';
+import { resolveSpeechLocale, useSpeechToText } from '../../hooks/useSpeechToText';
 import { t } from '../../i18n/translations';
 import { generateBookImage } from '../../services/ai';
 import { downloadTextFile } from '../../services/storage';
@@ -90,6 +93,37 @@ export const ChapterEditor: React.FC<ChapterEditorProps> = ({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const chapterRef = useRef(chapter);
+  chapterRef.current = chapter;
+
+  const speechLocale = resolveSpeechLocale(book.settings.language, lang);
+  const voice = useSpeechToText({
+    locale: speechLocale,
+    onFinalTranscript: (spoken) => {
+      const current = chapterRef.current;
+      const el = textareaRef.current;
+      if (el && document.activeElement === el) {
+        const start = el.selectionStart;
+        const end = el.selectionEnd;
+        const before = current.content.slice(0, start);
+        const after = current.content.slice(end);
+        const leadSpace = before.length > 0 && !/\s$/.test(before) ? ' ' : '';
+        const next = `${before}${leadSpace}${spoken}${after}`;
+        onUpdateChapter({
+          ...current,
+          content: next,
+          status: current.status === 'planned' ? 'draft' : current.status,
+        });
+      } else {
+        const sep = current.content.trim().length > 0 && !/\s$/.test(current.content) ? ' ' : '';
+        onUpdateChapter({
+          ...current,
+          content: `${current.content}${sep}${spoken}`,
+          status: current.status === 'planned' ? 'draft' : current.status,
+        });
+      }
+    },
+  });
 
   const fontClass = getFontClass(book.settings.fontFamily);
   const wc = countWords(chapter.content);
@@ -396,6 +430,44 @@ export const ChapterEditor: React.FC<ChapterEditorProps> = ({
           >
             <Sparkles className="h-3.5 w-3.5" />
           </button>
+
+          {voice.isSupported && (
+            <button
+              id="btn-editor-voice"
+              type="button"
+              onClick={voice.toggle}
+              title={
+                voice.isListening
+                  ? lang === 'el'
+                    ? 'Διακοπή φωνητικής υπαγόρευσης'
+                    : 'Stop voice dictation'
+                  : lang === 'el'
+                  ? `Φωνητική υπαγόρευση (${speechLocale})`
+                  : `Voice dictation (${speechLocale})`
+              }
+              className="ml-1 inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] font-semibold transition-colors cursor-pointer"
+              style={{
+                borderColor: voice.isListening ? 'var(--danger)' : 'var(--border-strong)',
+                backgroundColor: voice.isListening ? 'var(--danger)' : 'var(--bg-surface)',
+                color: voice.isListening ? '#ffffff' : 'var(--text-primary)',
+              }}
+            >
+              {voice.isListening ? (
+                <MicOff className="h-3.5 w-3.5 animate-pulse" />
+              ) : (
+                <Mic className="h-3.5 w-3.5" />
+              )}
+              <span className="hidden sm:inline">
+                {voice.isListening
+                  ? lang === 'el'
+                    ? 'Ακούω...'
+                    : 'Listening...'
+                  : lang === 'el'
+                  ? 'Υπαγόρευση'
+                  : 'Dictate'}
+              </span>
+            </button>
+          )}
         </div>
 
         {/* Font + View Mode (including Paragraph Selection mode!) */}
@@ -469,6 +541,42 @@ export const ChapterEditor: React.FC<ChapterEditorProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Live Voice Dictation Indicator Bar */}
+      {(voice.isListening || voice.error) && (
+        <div
+          className="flex items-center justify-between gap-2 border-b px-3.5 py-1.5 text-xs"
+          style={{
+            backgroundColor: voice.error ? 'var(--danger-soft)' : 'var(--sage-soft)',
+            borderColor: 'var(--border-subtle)',
+            color: voice.error ? 'var(--danger)' : 'var(--sage)',
+          }}
+        >
+          <span className="inline-flex items-center gap-2 truncate">
+            <Mic className="h-3.5 w-3.5 shrink-0 animate-pulse" />
+            {voice.error ? (
+              <span>{voice.error}</span>
+            ) : voice.interimText ? (
+              <span className="italic">«{voice.interimText}»</span>
+            ) : (
+              <span>
+                {lang === 'el'
+                  ? `Μίλα ελεύθερα (${speechLocale}) — το κείμενο μπαίνει αυτόματα στον κειμενογράφο...`
+                  : `Speak freely (${speechLocale}) — your words are inserted directly into the draft...`}
+              </span>
+            )}
+          </span>
+          {voice.isListening && (
+            <button
+              onClick={voice.stop}
+              className="shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold text-white cursor-pointer"
+              style={{ backgroundColor: 'var(--danger)' }}
+            >
+              {lang === 'el' ? 'Τέλος' : 'Stop'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Active Selection Banner */}
       {selectedExcerpt && (

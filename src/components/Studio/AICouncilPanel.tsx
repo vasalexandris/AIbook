@@ -8,6 +8,8 @@ import {
   CornerDownLeft,
   Layers,
   Loader2,
+  Mic,
+  MicOff,
   Replace,
   Send,
   Sparkles,
@@ -16,6 +18,7 @@ import {
   X,
 } from 'lucide-react';
 import { AI_ROLES, getRoleById, ROLE_GROUPS } from '../../data/roles';
+import { resolveSpeechLocale, useSpeechToText } from '../../hooks/useSpeechToText';
 import { t } from '../../i18n/translations';
 import { askCouncil, chatWithRole, suggestChapterDirections } from '../../services/ai';
 import {
@@ -114,6 +117,18 @@ export const AICouncilPanel: React.FC<AICouncilPanelProps> = ({
   const [loadingCouncil, setLoadingCouncil] = useState(false);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const speechLocale = resolveSpeechLocale(book.settings.language, lang);
+
+  const chatVoice = useSpeechToText({
+    locale: speechLocale,
+    onFinalTranscript: (spoken) => {
+      if (panelMode === 'council') {
+        setCouncilQuestion((prev) => `${prev}${prev.trim() ? ' ' : ''}${spoken}`);
+      } else {
+        setInput((prev) => `${prev}${prev.trim() ? ' ' : ''}${spoken}`);
+      }
+    },
+  });
 
   const currentRoleDef = getRoleById(activeRole);
   const priorSummariesCount = book.chapters.filter(
@@ -784,6 +799,34 @@ export const AICouncilPanel: React.FC<AICouncilPanelProps> = ({
               )}
             </div>
 
+            {chatVoice.isListening && (
+              <div
+                className="flex items-center justify-between rounded-lg px-2.5 py-1 text-xs"
+                style={{ backgroundColor: 'var(--sage-soft)', color: 'var(--sage)' }}
+              >
+                <span className="inline-flex items-center gap-1.5 truncate">
+                  <Mic className="h-3.5 w-3.5 shrink-0 animate-pulse" />
+                  {chatVoice.interimText
+                    ? `«${chatVoice.interimText}»`
+                    : lang === 'el'
+                    ? `Ακούω (${speechLocale})...`
+                    : `Listening (${speechLocale})...`}
+                </span>
+                <button
+                  onClick={chatVoice.stop}
+                  className="text-[11px] font-semibold underline cursor-pointer"
+                >
+                  {lang === 'el' ? 'Τέλος' : 'Stop'}
+                </button>
+              </div>
+            )}
+
+            {chatVoice.error && (
+              <div className="text-[11px]" style={{ color: 'var(--danger)' }}>
+                {chatVoice.error}
+              </div>
+            )}
+
             <div className="flex items-end gap-2">
               <textarea
                 rows={3}
@@ -803,6 +846,36 @@ export const AICouncilPanel: React.FC<AICouncilPanelProps> = ({
                   color: 'var(--text-primary)',
                 }}
               />
+
+              {chatVoice.isSupported && (
+                <button
+                  id="btn-chat-voice"
+                  type="button"
+                  onClick={chatVoice.toggle}
+                  title={
+                    chatVoice.isListening
+                      ? lang === 'el'
+                        ? 'Διακοπή φωνητικής εισαγωγής'
+                        : 'Stop voice input'
+                      : lang === 'el'
+                      ? `Φωνητική εισαγωγή (${speechLocale})`
+                      : `Voice input (${speechLocale})`
+                  }
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-colors cursor-pointer"
+                  style={{
+                    borderColor: chatVoice.isListening ? 'var(--danger)' : 'var(--border-strong)',
+                    backgroundColor: chatVoice.isListening ? 'var(--danger)' : 'var(--bg-canvas)',
+                    color: chatVoice.isListening ? '#ffffff' : 'var(--text-primary)',
+                  }}
+                >
+                  {chatVoice.isListening ? (
+                    <MicOff className="h-4 w-4 animate-pulse" />
+                  ) : (
+                    <Mic className="h-4 w-4" />
+                  )}
+                </button>
+              )}
+
               <button
                 id="btn-send-ai-chat"
                 onClick={() => handleSendSingle()}
@@ -843,17 +916,38 @@ export const AICouncilPanel: React.FC<AICouncilPanelProps> = ({
               })}
             </div>
 
-            <textarea
-              rows={3}
-              value={councilQuestion}
-              onChange={(e) => setCouncilQuestion(e.target.value)}
-              placeholder={t(lang, 'councilPlaceholder')}
-              className="w-full resize-y rounded-xl border px-3.5 py-2.5 text-sm outline-none"
-              style={{
-                backgroundColor: 'var(--bg-canvas)',
-                borderColor: 'var(--border-strong)',
-              }}
-            />
+            <div className="flex items-end gap-2">
+              <textarea
+                rows={3}
+                value={councilQuestion}
+                onChange={(e) => setCouncilQuestion(e.target.value)}
+                placeholder={t(lang, 'councilPlaceholder')}
+                className="flex-1 resize-y rounded-xl border px-3.5 py-2.5 text-sm outline-none"
+                style={{
+                  backgroundColor: 'var(--bg-canvas)',
+                  borderColor: 'var(--border-strong)',
+                }}
+              />
+              {chatVoice.isSupported && (
+                <button
+                  type="button"
+                  onClick={chatVoice.toggle}
+                  title={lang === 'el' ? 'Φωνητική εισαγωγή' : 'Voice input'}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border cursor-pointer"
+                  style={{
+                    borderColor: chatVoice.isListening ? 'var(--danger)' : 'var(--border-strong)',
+                    backgroundColor: chatVoice.isListening ? 'var(--danger)' : 'var(--bg-canvas)',
+                    color: chatVoice.isListening ? '#ffffff' : 'var(--text-primary)',
+                  }}
+                >
+                  {chatVoice.isListening ? (
+                    <MicOff className="h-4 w-4 animate-pulse" />
+                  ) : (
+                    <Mic className="h-4 w-4" />
+                  )}
+                </button>
+              )}
+            </div>
 
             <button
               id="btn-run-council"
