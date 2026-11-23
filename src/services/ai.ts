@@ -323,11 +323,24 @@ export async function chatWithRole(
   chapter: Chapter,
   roleId: AIRoleId,
   userMessage: string,
-  recentHistory: ChatMessage[]
+  recentHistory: ChatMessage[],
+  selectedExcerpt?: string
 ): Promise<string> {
   const role = getRoleById(roleId);
   const context = buildChapterContextPrompt(book, chapter);
-  const sys = `${role.systemPrompt}\n\nAlways respond in ${book.settings.language} unless the user explicitly asks for another language.\n\n${context}`;
+  const applyBlockInstruction = `
+IMPORTANT FORMATTING FOR READY-TO-APPLY TEXT:
+Whenever you provide a corrected text, rewritten paragraph, continuation, or alternative version(s) that the author may want to apply directly into their chapter with one click, wrap EACH separate ready-to-apply version inside a fenced code block using this exact syntax:
+\`\`\`apply:Short descriptive title (e.g. Διορθωμένη εκδοχή / Εναλλακτική 1)
+The clean prose text only (no meta-commentary inside this block).
+\`\`\`
+Keep your explanations, error lists, or commentary OUTSIDE the \`\`\`apply:...\`\`\` blocks.`;
+
+  const selectionBlock = selectedExcerpt?.trim()
+    ? `\n\n=== AUTHOR'S CURRENTLY SELECTED PASSAGE (FOCUS HERE) ===\n${selectedExcerpt.trim()}\n=== END OF SELECTED PASSAGE ===\nThe author has specifically selected the passage above. Focus your analysis, corrections, or rewrites on this selected passage unless they ask about the whole chapter.`
+    : '';
+
+  const sys = `${role.systemPrompt}\n\nAlways respond in ${book.settings.language} unless the user explicitly asks for another language.\n${applyBlockInstruction}\n\n${context}${selectionBlock}`;
 
   const contents: GeminiContent[] = recentHistory.slice(-10).map((m) => ({
     role: m.role === 'user' ? 'user' : 'model',

@@ -86,6 +86,15 @@ export interface ChatMessage {
   timestamp: string;
 }
 
+export interface ChapterRevision {
+  id: string;
+  timestamp: string;
+  label: string;
+  previousExcerpt?: string;
+  newExcerpt?: string;
+  fullContent: string;
+}
+
 export interface Chapter {
   id: string;
   number: number;
@@ -95,6 +104,7 @@ export interface Chapter {
   summary: string;
   status: 'planned' | 'draft' | 'completed';
   chatHistory: ChatMessage[];
+  revisions?: ChapterRevision[];
   updatedAt: string;
 }
 

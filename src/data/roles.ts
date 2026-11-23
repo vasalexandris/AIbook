@@ -1,5 +1,12 @@
 import { AIRoleGroup, AIRoleId } from '../types/book';
 
+export interface AIRoleQuickAction {
+  labelEl: string;
+  labelEn: string;
+  promptEl: string;
+  promptEn: string;
+}
+
 export interface AIRoleDefinition {
   id: AIRoleId;
   group: AIRoleGroup;
@@ -10,6 +17,7 @@ export interface AIRoleDefinition {
   systemPrompt: string;
   quickPromptsEl: string[];
   quickPromptsEn: string[];
+  quickActions?: AIRoleQuickAction[];
 }
 
 export const AI_ROLES: AIRoleDefinition[] = [
@@ -33,6 +41,32 @@ export const AI_ROLES: AIRoleDefinition[] = [
       'Suggest 3 alternative directions this section could take.',
       'Enrich the dialogue and flow of the latest scene.',
     ],
+    quickActions: [
+      {
+        labelEl: 'Συνέχεια κειμένου',
+        labelEn: 'Draft continuation',
+        promptEl: 'Γράψε την επόμενη παράγραφο/σκηνή συνεχίζοντας φυσικά το κείμενο με το ύφος του βιβλίου. Δώσε το έτοιμο κείμενο σε μπλοκ εφαρμογής.',
+        promptEn: 'Draft the next paragraph/scene continuing naturally in the book’s voice. Provide the ready text in an apply block.',
+      },
+      {
+        labelEl: '2 εναλλακτικές εκδοχές',
+        labelEn: '2 alternative versions',
+        promptEl: 'Δώσε μου 2 διαφορετικές εναλλακτικές αναδιατυπώσεις για το επιλεγμένο κείμενο (ή τις τελευταίες παραγράφους), καθεμία σε ξεχωριστό μπλοκ εφαρμογής ώστε να διαλέξω με ένα πάτημα.',
+        promptEn: 'Give me 2 distinct alternative versions for the selected text (or latest paragraphs), each in its own apply block so I can pick with one click.',
+      },
+      {
+        labelEl: 'Εμπλουτισμός περιγραφής',
+        labelEn: 'Enrich imagery',
+        promptEl: 'Εμπλούτισε το επιλεγμένο απόσπασμα με πιο ζωντανές εικόνες, ρυθμό και βάθος χωρίς να αλλοιώσεις το νόημα.',
+        promptEn: 'Enrich the selected passage with more vivid imagery, rhythm, and depth while preserving its meaning.',
+      },
+      {
+        labelEl: 'Βελτίωση διαλόγου',
+        labelEn: 'Sharpen dialogue',
+        promptEl: 'Κάνε τους διαλόγους πιο φυσικούς, ζωντανούς και χαρακτηριστικούς για τον κάθε ομιλητή.',
+        promptEn: 'Make the dialogue more natural, vivid, and distinctive to each speaker.',
+      },
+    ],
   },
   {
     id: 'assistant',
@@ -53,6 +87,26 @@ export const AI_ROLES: AIRoleDefinition[] = [
       'List what still needs to be covered before this chapter wraps up.',
       'Suggest 5 strong titles for this chapter.',
     ],
+    quickActions: [
+      {
+        labelEl: 'Δημιουργία Πίνακα',
+        labelEn: 'Build Markdown Table',
+        promptEl: 'Φτιάξε έναν καθαρό πίνακα σε Markdown που συνοψίζει τα βασικά στοιχεία/δεδομένα του κειμένου.',
+        promptEn: 'Build a clean Markdown table summarizing the key elements/data of this text.',
+      },
+      {
+        labelEl: 'Λίστα Ελέγχου Κεφαλαίου',
+        labelEn: 'Chapter Checklist',
+        promptEl: 'Κάνε μια σύντομη λίστα με όσα έχουμε καλύψει και όσα απομένουν για να ολοκληρωθεί το κεφάλαιο.',
+        promptEn: 'List what we have covered and what remains to complete this chapter.',
+      },
+      {
+        labelEl: '5 Ιδέες Τίτλου',
+        labelEn: '5 Title Ideas',
+        promptEl: 'Πρότεινε 5 δυνατούς, ταιριαστούς τίτλους για αυτό το κεφάλαιο.',
+        promptEn: 'Suggest 5 strong, fitting titles for this chapter.',
+      },
+    ],
   },
   {
     id: 'researcher',
@@ -72,6 +126,20 @@ export const AI_ROLES: AIRoleDefinition[] = [
       'Check the current draft for factual gaps or claims needing verification.',
       'How can I weave our saved references/bibliography into this chapter?',
       'What domain facts or studies should I look up to strengthen this section?',
+    ],
+    quickActions: [
+      {
+        labelEl: 'Έλεγχος Ακρίβειας',
+        labelEn: 'Fact-Check Text',
+        promptEl: 'Έλεγξε το κείμενο για ιστορικές, επιστημονικές ή πραγματολογικές ανακρίβειες και σημείωσε τι χρειάζεται τεκμηρίωση.',
+        promptEn: 'Check the text for historical, scientific, or factual inaccuracies and flag claims needing citations.',
+      },
+      {
+        labelEl: 'Ενσωμάτωση Βιβλιογραφίας',
+        labelEn: 'Weave Bibliography',
+        promptEl: 'Δείξε μου πού και πώς μπορώ να ενσωματώσω τις αποθηκευμένες πηγές της Βίβλου σε αυτό το κείμενο.',
+        promptEn: 'Show where and how to integrate our saved Book Bible references into this passage.',
+      },
     ],
   },
   {
@@ -101,10 +169,10 @@ export const AI_ROLES: AIRoleDefinition[] = [
     group: 'quality',
     nameEl: 'Επιμελητής Κειμένου',
     nameEn: 'Line & Copy Editor',
-    shortDescEl: 'Διορθώνει ύφος, ρυθμό, επαναλήψεις, σαφήνεια και γλώσσα.',
-    shortDescEn: 'Polishes prose, pacing, clarity, repetition, and language craft.',
+    shortDescEl: 'Ορθογραφικός, συντακτικός, τυπογραφικός έλεγχος και επιμέλεια ύφους.',
+    shortDescEn: 'Spellcheck, typos, syntax, grammar, prose polish, and alternatives.',
     systemPrompt:
-      'You are a senior Literary & Copy Editor. Critique prose quality, pacing, clarity, redundancies, and voice consistency. Give concrete before/after line suggestions without erasing the author’s authentic voice.',
+      'You are a senior Literary & Copy Editor. Catch every typo, transposed letters (e.g. έκαεν -> έκανε), missing/wrong accents (τονισμός), spelling, grammar, and syntax issue. Always list what you found clearly, and provide clean, ready-to-apply corrected version(s) inside ```apply:Title ... ``` blocks so the author can apply any option with one click without erasing their authentic voice.',
     quickPromptsEl: [
       'Κάνε επιμέλεια ύφους και ρυθμού στο κείμενο αυτού του κεφαλαίου.',
       'Εντόπισε επαναλήψεις, πλατειασμούς ή αδύναμες προτάσεις.',
@@ -114,6 +182,40 @@ export const AI_ROLES: AIRoleDefinition[] = [
       'Do a line-editing pass for flow, clarity, and rhythm on this draft.',
       'Spot repetitions, wordiness, or weak phrasing.',
       'Is the opening hook of this chapter strong enough?',
+    ],
+    quickActions: [
+      {
+        labelEl: 'Ορθογραφικός & Τυπογραφικός Έλεγχος',
+        labelEn: 'Spellcheck & Typos',
+        promptEl:
+          'Κάνε σχολαστικό ορθογραφικό, τυπογραφικό (αναγραμματισμούς, λάθη πληκτρολόγησης) και έλεγχο τονισμού στο κείμενο. Πρώτα δείξε σε σύντομη λίστα τα λάθη που βρήκες (π.χ. λάθος → σωστό) και μετά δώσε το ακριβές διορθωμένο κείμενο (χωρίς να αλλάξεις το ύφος μου) σε μπλοκ εφαρμογής.',
+        promptEn:
+          'Perform a thorough spelling, typo, and punctuation/accent check. First list each error found (wrong → right), then provide the cleanly corrected text (preserving my exact voice) in an apply block.',
+      },
+      {
+        labelEl: 'Συντακτικός & Γραμματικός Έλεγχος',
+        labelEn: 'Syntax & Grammar Check',
+        promptEl:
+          'Κάνε συντακτικό και γραμματικό έλεγχο στο κείμενο. Εξήγησε συνοπτικά τι προτείνεις να διορθωθεί και δώσε την καθαρή διορθωμένη εκδοχή σε μπλοκ εφαρμογής.',
+        promptEn:
+          'Check syntax and grammar carefully. Briefly explain each fix and provide the clean corrected version in an apply block.',
+      },
+      {
+        labelEl: 'Ορθογραφία + 2 Εναλλακτικές Ύφους',
+        labelEn: 'Proofread + 2 Style Alternatives',
+        promptEl:
+          'Διόρθωσε ορθογραφικά, τυπογραφικά και συντακτικά το κείμενο. Δείξε τι βρήκες και δώσε: (1) την πιστή διορθωμένη εκδοχή και (2) μια πιο ρέουσα λογοτεχνική εναλλακτική, καθεμία σε ξεχωριστό μπλοκ εφαρμογής.',
+        promptEn:
+          'Proofread spelling, typos, and syntax. List what you found, then give (1) a faithful corrected version and (2) a smoother literary alternative, each in its own apply block.',
+      },
+      {
+        labelEl: 'Επιμέλεια Ύφους & Ρυθμού',
+        labelEn: 'Style & Flow Polish',
+        promptEl:
+          'Κάνε επιμέλεια ύφους, ρυθμού και αποφυγής επαναλήψεων, και δώσε το βελτιωμένο κείμενο σε μπλοκ εφαρμογής.',
+        promptEn:
+          'Polish style, pacing, and eliminate repetition, and provide the improved text in an apply block.',
+      },
     ],
   },
   {
